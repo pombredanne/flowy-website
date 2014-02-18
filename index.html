@@ -44,16 +44,32 @@ class MyWorkflow(Workflow):
     sum = ActivityProxy('sum', 1)
     square= ActivityProxy('square', 1)
 
-    def run(self, inp):
-            </pre>
+    def run(self, inp): </pre>
             <textarea id="yourcode" cols="40" rows="10">
             </textarea>
             <button type="button" onclick="runit()">Run</button>
         </div>
         <div class="col-md-7">
+            
             <div id="priority_queue" class="stack">
-               
+                <div class="activity">
+                    <span class="name">sum</span>
+                    <span class="inputs">[1,2,3]</span>
+                    <input type="text" placeholder="Return value" class="return_value">
+                    <button class="finish">F</button>
+                    <button class="error">E</button>
+                    <button class="timeout">T</button>
+                </div> 
+                <div class="activity">
+                    <span class="name">square</span>
+                    <span class="inputs">[1]</span>
+                    <input type="text" placeholder="Return value" class="return_value">
+                    <button class="finish">F</button>
+                    <button class="error">E</button>
+                    <button class="timeout">T</button>
+                </div> 
             </div>
+            Priority queue
             <div id="normal" class="stack">
                
             </div>

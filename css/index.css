@@ -1,9 +1,10 @@
 .stack {
-    height: 40px;
+    min-height: 40px;
     width: 100px;
     border: 1px solid gray;
     float:left;
     margin: 5px;
+    padding-top: 5px;
 }
 
 #yourcode {
@@ -13,3 +14,13 @@
 body {
     padding-top:50px;
 }
+
+.return_value {
+    width:90px;
+}
+
+.activity {
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+}
+
