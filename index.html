@@ -30,51 +30,64 @@
         </div>
       </div>
     </div>
-<div class="container-fluid">
+<div class="container">
     <div class="row">
         <div class="col-md-4 col-md-offset-4">
             <h3>Try Flowy</h3>
         </div>
     </div>
     <div class="row">
-        <div class="col-md-3">
-            <pre>
+        <div class="col-md-5">
+            <pre id="flowy_workflow">
 @Workflow('MyWorkflow', 4, 'my_list')
 class MyWorkflow(Workflow):
     sum = ActivityProxy('sum', 1)
     square= ActivityProxy('square', 1)
 
     def run(self, inp): </pre>
-            <textarea id="yourcode" cols="40" rows="10">
-            </textarea>
-            <button type="button" onclick="runit()">Run</button>
+            <textarea id="yourcode" cols="40" rows="10"></textarea>
+            <button type="button" onclick="runit()" class="center-block" id="run_button">Run</button>
+            <pre id="output"> </pre>
         </div>
-        <div class="col-md-7">
-            
-            <div id="priority_queue" class="stack">
-                <div class="activity">
-                    <span class="name">sum</span>
-                    <span class="inputs">[1,2,3]</span>
-                    <input type="text" placeholder="Return value" class="return_value">
-                    <button class="finish">F</button>
-                    <button class="error">E</button>
-                    <button class="timeout">T</button>
-                </div> 
-                <div class="activity">
-                    <span class="name">square</span>
-                    <span class="inputs">[1]</span>
-                    <input type="text" placeholder="Return value" class="return_value">
-                    <button class="finish">F</button>
-                    <button class="error">E</button>
-                    <button class="timeout">T</button>
-                </div> 
+        <div class="col-md-6">
+            <div id="priority_queue" class="stack_wrapper">
+                <div class="stack">
+                    <div class="activity">
+                        <span class="name">sum</span>
+                        <span class="inputs">[1,2,3]</span>
+                        <span class="result">6</span>
+                        <button class="finish"><span class="glyphicon glyphicon-ok"></span></button>
+                        <button class="error"><span class="glyphicon glyphicon-remove"></span></button>
+                        <button class="timeout"><span class="glyphicon glyphicon-time"></span></button>
+                    </div>
+                    <div class="activity">
+                        <span class="name">square</span>
+                        <span class="inputs">[2]</span>
+                        <span class="result">4</span>
+                        <button class="finish"><span class="glyphicon glyphicon-ok"></span></button>
+                        <button class="error"><span class="glyphicon glyphicon-remove"></span></button>
+                        <button class="timeout"><span class="glyphicon glyphicon-time"></span></button>
+                    </div>
+                </div>
+                <div class="queue_name">
+                    Priority queue
+                </div>
             </div>
-            Priority queue
-            <div id="normal" class="stack">
-               
+            <div id="normal_queue" class="stack_wrapper">
+                <div id="normal" class="stack">
+                
+                </div>
+                <div class="queue_name">
+                    Normal queue
+                </div>
             </div>
-            <div id="backup" class="stack">
-               
+            <div id="backup_queue" class="stack_wrapper">
+                <div class="stack">
+                
+                </div>
+                <div class="queue_name">
+                    Backup queue
+                </div>
             </div>
         </div>
     </div>
