@@ -100,103 +100,88 @@ self.square(2)</textarea>
 <script src="js/bootstrap.min.js" type="text/javascript"></script>
 <script type="text/python">
 from browser import doc
+from flowy.exception import SuspendTask, TaskError, TaskTimedout
+from flowy.result import Placeholder, Error, Timeout, Result
+from flowy.task import Workflow
+from flowy.scheduler import OptionsScheduler, ArgsDependencyScheduler
+from flowy.swf.scheduler import DecisionScheduler
+import json
+
+class Client(object):
+
+    def respond_decision_task_completed(self, task_token, decisions):
+        for decision in decisions:
+            print(decision)
+            dt = decision['decisionType']
+            if dt == 'ScheduleActivityTask':
+                pass
+            elif dt == 'Else':
+                pass
+
 import traceback
+
 def indent(string, count=1):
     return "\n".join('    '*count + line for line in string.split('\n'))
 
-class SuspendTask(Exception):
-    """ Raised to suspend the task run.
 
-    This happens when a worklfow needs to wait for an activity or in case of an
-    async activity.
-    """
+class WorkflowProxy(object):
+    def __init__(self, task_id, version):
+        self.scheduler = None
+        self._kwargs = dict(
+            task_id=(task_id, version), 
+            decision_duration=0,
+            workflow_duration=0,
+            task_list='normal_queue',
+            retry=0,
+            delay=0,
+            error_handling=False
+        )
 
+    def __call__(self, *args, **kwargs):
+        print(self._kwargs)
+        return self.scheduler.remote_subworkflow(
+            args=args, kwargs=kwargs,
+            args_serializer=self._serialize_arguments,
+            result_deserializer=self._deserialize_result,
+            **self._kwargs
+        )
 
-class TaskError(Exception):
-    """ Raised from an activity or subworkflow task if error handling is
-    enabled and the task fails.
-    """
+    def _serialize_arguments(self, *args, **kwargs):
+        return json.dumps([args, kwargs])
 
+    def _deserialize_result(self, result):
+        return json.loads(result)
 
-class TaskTimedout(TaskError):
-    """ Raised from an activity or subworkflow task if any of its timeout
-    timers were exceeded.
-    """
+class ActivityProxy(object):
+    def __init__(self, task_id, version):
+        self.scheduler = None
+        self._kwargs = dict(
+            task_id=(task_id, version),
+            heartbeat=0,
+            schedule_to_close=0,
+            schedule_to_start=0,
+            start_to_close=0,
+            task_list='normal_queue',
+            retry=0,
+            delay=0,
+            error_handling=False
+        )
 
-class Placeholder(object):
-    def result(self):
-        raise SuspendTask()
+    def __call__(self, *args, **kwargs):
+        return self.scheduler.remote_activity(
+            args=args, kwargs=kwargs,
+            args_serializer=self._serialize_arguments,
+            result_deserializer=self._deserialize_result,
+            **self._kwargs
+        )
 
+    def _serialize_arguments(self, *args, **kwargs):
+        return json.dumps([args, kwargs])
 
-class Error(object):
-    def __init__(self, reason):
-        self._reason = reason
-
-    def result(self):
-        raise TaskError(self._reason)
-
-
-class Timeout(object):
-    def result(self):
-        raise TaskTimedout()
-
-
-class Result(object):
-    def __init__(self, result):
-        self._result = result
-
-    def result(self):
-        return self._result
-
-def workflow(*args, **kwargs):
-    def wrapper(func):
-        return func()
-    return wrapper
-
-def check(func, args):
-    if call_id in running:
-        return Placeholder()
-    if call_id in timedout:
-        return Timeout()
-    if call_id in errors:
-        return Error(errors[call_id])
-    if call_id in results:
-        return Result(func(args))
-    running.append(call_id)
-    return Placeholder()
-
-def sum_args(*args):
-    print('sarg')
-    res = check(sum, args)
-    print('res')
-    global call_id
-    call_id += 1
-    return res
-
-def square(x):
-    res = check(lambda x: x**2, x)
-    global call_id
-    call_id += 1
-    return res
-
-def ActivityProxy(name, *args):
-    print(name)
-    if name == 'sum':
-        return sum_args
-    if name == 'square':
-        return square
-
-call_id = 0
-running = []
-timedout = []
-results = {}
-errors = {}
-
-class Workflow(object):
-    pass
+    def _deserialize_result(self, result):
+        return json.loads(result)
 
 cls_header = "
-@workflow('MyWorkflow', 4, 'my_list')
 class MyWorkflow(Workflow):
     sum = ActivityProxy('sum', 1)
     square = ActivityProxy('square', 1)
@@ -210,8 +195,24 @@ def run(event):
     print(cls_def)
     try:
         exec(cls_def, globals())
-        wf = MyWorkflow()
-        value = wf.run()
+        sched = OptionsScheduler(
+                    ArgsDependencyScheduler(
+                        DecisionScheduler(
+                            client=Client(),
+                            token='token',
+                            running=[],
+                            timedout=[],
+                            results=[],
+                            errors=[]
+                    )
+                )
+            )
+        MyWorkflow.sum.scheduler = sched
+        MyWorkflow.square.scheduler = sched
+        wf = MyWorkflow('[[], {}]', sched)
+        value = wf()
+        print('aaafter')
+        print(sched._decisions._data)
         print(value)
     except Exception as exc:
         traceback.print_exc()

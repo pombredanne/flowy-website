@@ -1,0 +1,3 @@
+[submodule "flowy_module"]
+	path = flowy_module
+	url = https://github.com/pbs/flowy.git
