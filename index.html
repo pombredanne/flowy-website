@@ -50,46 +50,7 @@ self.square(2)</textarea>
             <button type="button" class="center-block" id="run_button">Run</button>
             <pre id="output"> </pre>
         </div>
-        <div class="col-md-6">
-            <div id="priority_queue" class="stack_wrapper">
-                <div class="stack">
-                    <div class="activity">
-                        <span class="name">sum</span>
-                        <span class="inputs">[1,2,3]</span>
-                        <span class="result">6</span>
-                        <button class="finish"><span class="glyphicon glyphicon-ok"></span></button>
-                        <button class="error"><span class="glyphicon glyphicon-remove"></span></button>
-                        <button class="timeout"><span class="glyphicon glyphicon-time"></span></button>
-                    </div>
-                    <div class="activity">
-                        <span class="name">square</span>
-                        <span class="inputs">[2]</span>
-                        <span class="result">4</span>
-                        <button class="finish"><span class="glyphicon glyphicon-ok"></span></button>
-                        <button class="error"><span class="glyphicon glyphicon-remove"></span></button>
-                        <button class="timeout"><span class="glyphicon glyphicon-time"></span></button>
-                    </div>
-                </div>
-                <div class="queue_name">
-                    Priority queue
-                </div>
-            </div>
-            <div id="normal_queue" class="stack_wrapper">
-                <div id="normal" class="stack">
-                
-                </div>
-                <div class="queue_name">
-                    Normal queue
-                </div>
-            </div>
-            <div id="backup_queue" class="stack_wrapper">
-                <div class="stack">
-                
-                </div>
-                <div class="queue_name">
-                    Backup queue
-                </div>
-            </div>
+    <div class="col-md-6" id="result">
         </div>
     </div>
 </div>
@@ -98,6 +59,74 @@ self.square(2)</textarea>
 <script src="js/Ractive.js" type="text/javascript"></script>
 <script src="js/brython.js" type="text/javascript"></script>
 <script src="js/bootstrap.min.js" type="text/javascript"></script>
+<script id="template" type='ractive'>
+        <div id="priority_queue" class="stack_wrapper">
+            <div class="stack">
+                {{#priority_activities}}
+                    <div class="activity" data-id="{{id}}">
+                        <span class="name">{{name}}</span>
+                        <span class="inputs">{{inputs}}</span>
+                        <span class="result">{{result}}</span>
+                        <button class="finish"><span class="glyphicon glyphicon-ok"></span></button>
+                        <button class="error"><span class="glyphicon glyphicon-remove"></span></button>
+                        <button class="timeout"><span class="glyphicon glyphicon-time"></span></button>
+                    </div>
+                {{/priority_activities}}
+            </div>
+            <div class="queue_name">
+                Priority queue
+            </div>
+        </div>
+        <div id="normal_queue" class="stack_wrapper">
+            <div id="normal" class="stack">
+                {{#normal_activities}}
+                    <div class="activity" data-id="{{id}}">
+                        <span class="name">{{name}}</span>
+                        <span class="inputs">{{inputs}}</span>
+                        <span class="result">{{result}}</span>
+                        <button class="finish"><span class="glyphicon glyphicon-ok"></span></button>
+                        <button class="error"><span class="glyphicon glyphicon-remove"></span></button>
+                        <button class="timeout"><span class="glyphicon glyphicon-time"></span></button>
+                    </div>
+                {{/normal_activities}}
+            </div>
+            <div class="queue_name">
+                Normal queue
+            </div>
+        </div>
+        <div id="backup_queue" class="stack_wrapper">
+            <div class="stack">
+                {{#backup_activities}}
+                    <div class="activity" data-id="{{id}}">
+                        <span class="name">{{name}}</span>
+                        <span class="inputs">{{inputs}}</span>
+                        <span class="result">{{result}}</span>
+                        <button class="finish"><span class="glyphicon glyphicon-ok"></span></button>
+                        <button class="error"><span class="glyphicon glyphicon-remove"></span></button>
+                        <button class="timeout"><span class="glyphicon glyphicon-time"></span></button>
+                    </div>
+                {{/backup_activities}}
+            </div>
+            <div class="queue_name">
+                Backup queue
+            </div>
+        </div>
+</script>
+<script type="text/javascript">
+    priority_activities = [{name:'sum', id: '1', inputs: '[1,2,3]', result: '6'}];
+    normal_activities = [];
+    backup_activities = [];
+
+ractive = new Ractive({
+  el: 'result',
+  template: '#template',
+        data: {
+            priority_activities: priority_activities,
+            normal_activities: normal_activities,
+            backup_activities: backup_activities
+        }
+});
+</script>
 <script type="text/python">
 from browser import doc
 from flowy.exception import SuspendTask, TaskError, TaskTimedout
@@ -105,7 +134,20 @@ from flowy.result import Placeholder, Error, Timeout, Result
 from flowy.task import Workflow
 from flowy.scheduler import OptionsScheduler, ArgsDependencyScheduler
 from flowy.swf.scheduler import DecisionScheduler
+from javascript import JSObject
 import json
+
+running = []
+errors = {}
+timedout = []
+results = {}
+
+pq = JSObject(priority_activities)
+nq = JSObject(normal_activities)
+bq = JSObject(backup_activities)
+
+def square(x):
+    return x**2
 
 class Client(object):
 
@@ -114,14 +156,40 @@ class Client(object):
             print(decision)
             dt = decision['decisionType']
             if dt == 'ScheduleActivityTask':
-                pass
+                print('in if')
+                atrs = decision['scheduleActivityTaskDecisionAttributes']
+                name = atrs['activityType']['name']
+                task_list = atrs['taskList']['name']
+                args, kwargs = json.loads(atrs['input'])
+                print(task_list)
+                print('after defs')
+                print(args)
+                print(kwargs)
+                id = atrs['activityId']
+                if name == 'sum':
+                    result = sum(args)
+                elif name == 'square':
+                    result = square(*args)
+                print('after res')
+                global running, pq, nq, bq
+                running.append(id)
+                nrez = JSObject({'id': id, 'name': name, 'inputs': atrs['input'],
+                    'result': result
+                })
+                print(nrez)
+                if task_list == 'priority_queue':
+                    pq.push(nrez)
+                elif task_list == 'normal_queue':
+                    nq.push(JSObject(nrez))
+                else:
+                    bq.push(nrez)
             elif dt == 'Else':
                 pass
 
 import traceback
 
 def indent(string, count=1):
-    return "\n".join('    '*count + line for line in string.split('\n'))
+    return "\n".join(' '*4*count + line for line in string.split('\n'))
 
 
 class WorkflowProxy(object):
@@ -189,6 +257,12 @@ class MyWorkflow(Workflow):
     def run(self):
 "
 def run(event):
+    global running, errors, timedout, results
+    running = []
+    errors = {}
+    timedout = []
+    results = {}
+
     txt = doc['yourcode']
 
     cls_def = cls_header + indent(txt.value, 2)
@@ -200,10 +274,10 @@ def run(event):
                         DecisionScheduler(
                             client=Client(),
                             token='token',
-                            running=[],
-                            timedout=[],
-                            results=[],
-                            errors=[]
+                            running=running,
+                            timedout=timedout,
+                            results=results,
+                            errors=errors
                     )
                 )
             )
@@ -211,7 +285,6 @@ def run(event):
         MyWorkflow.square.scheduler = sched
         wf = MyWorkflow('[[], {}]', sched)
         value = wf()
-        print('aaafter')
         print(sched._decisions._data)
         print(value)
     except Exception as exc:
