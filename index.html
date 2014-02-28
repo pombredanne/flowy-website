@@ -131,20 +131,26 @@ function add_activity(queue, id, name, inputs, result) {
     window[queue].push({id:id, name: name, inputs: inputs, result:result})
 }
 ractive.on('finish', function(event) {
-    console.log(this)
-    console.log(event)
+    var results = $(event.node).siblings('.result').html()
+    var id = $(event.node).parent().data('id');
+    $(event.node).parent().remove();
+    handle_event(id, results, 'finish')
 })
 ractive.on('error', function(event) {
-    console.log(this)
-    console.log(event)
+    var results = $(event.node).siblings('.result').html()
+    var id = $(event.node).parent().data('id');
+    $(event.node).parent().remove();
+    handle_event(id, results, 'error')
 })
 ractive.on('timeout', function(event) {
-    console.log(this)
-    console.log(event)
+    var results = $(event.node).siblings('.result').html()
+    var id = $(event.node).parent().data('id');
+    $(event.node).parent().remove();
+    handle_event(id, results, 'timeout')
 })
 </script>
 <script type="text/python">
-from browser import doc
+from browser import doc, window, alert
 from flowy.exception import SuspendTask, TaskError, TaskTimedout
 from flowy.result import Placeholder, Error, Timeout, Result
 from flowy.task import Workflow
@@ -157,6 +163,19 @@ running = []
 errors = {}
 timedout = []
 results = {}
+
+def handle_event(id, result, ev_type):
+    running.remove(id)
+    if ev_type == 'finish':
+        results[id] = result
+    elif ev_type == 'timeout':
+        timedout.append(id)
+    else:
+        errors[id] = "Activity borked up"
+    run_one_decision()
+
+
+window.handle_event = handle_event
 
 add_act = JSObject(add_activity)
 
@@ -174,7 +193,7 @@ class Client(object):
                 name = atrs['activityType']['name']
                 task_list = atrs['taskList']['name']
                 args, kwargs = json.loads(atrs['input'])
-                id = atrs['activityId']
+                id = int(atrs['activityId'])
                 if name == 'sum':
                     result = sum(args)
                 elif name == 'square':
@@ -182,8 +201,13 @@ class Client(object):
                 global running
                 running.append(id)
                 add_act(task_list, id, name, atrs['input'], result)
-            elif dt == 'Else':
-                pass
+            elif dt == 'CompleteWorkflowExecution':
+                atrs = decision['completeWorkflowExecutionDecisionAttributes']
+                alert("Workflow finished with result: " + atrs['result'])
+            elif dt == 'FailWorkflowExecution':
+                atrs = decision['failWorkflowExecutionDecisionAttributes']
+                alert("Workflow finished with result: " + atrs['reason'])
+
 
 import traceback
 
@@ -250,6 +274,8 @@ class ActivityProxy(object):
 
 
 def run_one_decision():
+    print(running)
+    print(results)
     sched = OptionsScheduler(
                 ArgsDependencyScheduler(
                     DecisionScheduler(
