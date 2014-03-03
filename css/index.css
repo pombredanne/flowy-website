@@ -10,8 +10,9 @@
 
 }
 
-#yourcode {
-    margin-left: 80px;
+#code {
+    margin-left: 40px;
+    min-height:200px;
 }
 
 body {
@@ -29,4 +30,10 @@ body {
 
 #run_button {
     margin-top: 10px;
+}
+#flowy_workflow {
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    border-radius: 0;
 }

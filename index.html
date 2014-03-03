@@ -4,6 +4,7 @@
     <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css" media="screen" title="no title" charset="utf-8">
     <link rel="stylesheet" href="css/bootstrap-theme.min.css" type="text/css" media="screen" title="no title" charset="utf-8">
     <link rel="stylesheet" href="css/index.css" type="text/css" media="screen" title="no title" charset="utf-8">
+    <link rel="stylesheet" href="css/styles/solarized_dark.css" type="text/css" media="screen" title="no title" charset="utf-8">
 </head>
 <body>
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
@@ -39,16 +40,17 @@
     <div class="row">
         <div class="col-md-5">
             <pre id="flowy_workflow">
+<code>
 @Workflow('MyWorkflow', 4, 'my_list')
 class MyWorkflow(Workflow):
     sum = ActivityProxy('sum', 1)
     square = ActivityProxy('square', 1)
 
-    def run(self, input): </pre>
-            <textarea id="yourcode" cols="40" rows="10">self.sum(1,2,3)
-self.square(2)</textarea>
+    def run(self, input): </code></pre>
+            <div id="code">self.sum(1,2,3)
+self.square(2)</div>
             <button type="button" class="center-block" id="run_button">Run</button>
-            <pre id="output"> </pre>
+            <div id="output"></div>
         </div>
     <div class="col-md-6" id="result">
         </div>
@@ -130,24 +132,29 @@ ractive = new Ractive({
 function add_activity(queue, id, name, inputs, result) {
     window[queue].push({id:id, name: name, inputs: inputs, result:result})
 }
+function clear_queues() {
+    priority_queue.splice(0, priority_queue.length)
+    normal_queue.splice(0, normal_queue.length)
+    backup_queue.splice(0, backup_queue.length)
+}
 ractive.on('finish', function(event) {
     var results = $(event.node).siblings('.result').html()
     var id = $(event.node).parent().data('id');
     $(event.node).parent().remove();
     handle_event(id, results, 'finish')
-})
+});
 ractive.on('error', function(event) {
     var results = $(event.node).siblings('.result').html()
     var id = $(event.node).parent().data('id');
     $(event.node).parent().remove();
     handle_event(id, results, 'error')
-})
+});
 ractive.on('timeout', function(event) {
     var results = $(event.node).siblings('.result').html()
     var id = $(event.node).parent().data('id');
     $(event.node).parent().remove();
     handle_event(id, results, 'timeout')
-})
+});
 </script>
 <script type="text/python">
 from browser import doc, window, alert
@@ -178,6 +185,7 @@ def handle_event(id, result, ev_type):
 window.handle_event = handle_event
 
 add_act = JSObject(add_activity)
+clear_q = JSObject(clear_queues)
 
 def square(x):
     return x**2
@@ -206,6 +214,7 @@ class Client(object):
                 alert("Workflow finished with result: " + atrs['result'])
             elif dt == 'FailWorkflowExecution':
                 atrs = decision['failWorkflowExecutionDecisionAttributes']
+                clear_q()
                 alert("Workflow finished with result: " + atrs['reason'])
 
 
@@ -304,14 +313,15 @@ class MyWorkflow(Workflow):
 "
 def run(event):
     global running, errors, timedout, results
+    clear_q()
     running = []
     errors = {}
     timedout = []
     results = {}
 
-    txt = doc['yourcode']
+    txt = JSObject(editor).getValue()
 
-    cls_def = cls_header + indent(txt.value, 2)
+    cls_def = cls_header + indent(txt, 2)
     print(cls_def)
     try:
         exec(cls_def, globals())
@@ -323,6 +333,15 @@ doc['run_button'].bind('click', run)
 </script>
 <script type="text/javascript">
 brython()
+</script>
+<script src="js/src-min/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="js/highlight.pack.js" type="text/javascript" charset="utf-8"></script>
+<script>
+    var editor = ace.edit("code");
+    editor.setTheme("ace/theme/solarized_dark");
+    editor.getSession().setMode("ace/mode/python");
+    editor.setFontSize("14px")
+    hljs.initHighlightingOnLoad();
 </script>
 </body>
 </html>
