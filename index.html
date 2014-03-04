@@ -68,7 +68,7 @@ self.square(2)</div>
                     <div class="activity" data-id="{{id}}">
                         <div class="name">Name: {{name}}</div>
                         <div class="inputs">Input: {{inputs}}</div>
-                        <div class="result">Result: {{result}}</div>
+                        <div class="result">Result: <span>{{result}}</span></div>
                         <button class="finish" on-click="finish"><span class="glyphicon glyphicon-ok"></span></button>
                         <button class="error" on-click="error"><span class="glyphicon glyphicon-remove"></span></button>
                         <button class="timeout" on-click="timeout"><span class="glyphicon glyphicon-time"></span></button>
@@ -85,7 +85,7 @@ self.square(2)</div>
                     <div class="activity" data-id="{{id}}">
                         <div class="name">Name: {{name}}</div>
                         <div class="inputs">Input: {{inputs}}</div>
-                        <div class="result">Result: {{result}}</div>
+                        <div class="result">Result: <span>{{result}}</span></div>
                         <button class="finish" on-click="finish"><span class="glyphicon glyphicon-ok"></span></button>
                         <button class="error" on-click="error"><span class="glyphicon glyphicon-remove"></span></button>
                         <button class="timeout" on-click="timeout"><span class="glyphicon glyphicon-time"></span></button>
@@ -100,9 +100,9 @@ self.square(2)</div>
             <div class="stack">
                 {{#backup_activities}}
                     <div class="activity" data-id="{{id}}">
-                        <span class="name">{{name}}</span>
-                        <span class="inputs">{{inputs}}</span>
-                        <span class="result">{{result}}</span>
+                        <span class="name">Name: {{name}}</span>
+                        <span class="inputs">Input: {{inputs}}</span> 
+                        <span class="result">Result: <span>{{result}}</span></span>
                         <button class="finish" on-click="finish"><span class="glyphicon glyphicon-ok"></span></button>
                         <button class="error" on-click="error"><span class="glyphicon glyphicon-remove"></span></button>
                         <button class="timeout" on-click="timeout"><span class="glyphicon glyphicon-time"></span></button>
@@ -138,19 +138,19 @@ function clear_queues() {
     backup_queue.splice(0, backup_queue.length)
 }
 ractive.on('finish', function(event) {
-    var results = $(event.node).siblings('.result').html()
+    var results = $(event.node).siblings('.result').children('span').html()
     var id = $(event.node).parent().data('id');
     $(event.node).parent().remove();
     handle_event(id, results, 'finish')
 });
 ractive.on('error', function(event) {
-    var results = $(event.node).siblings('.result').html()
+    var results = $(event.node).siblings('.result').children('span').html()
     var id = $(event.node).parent().data('id');
     $(event.node).parent().remove();
     handle_event(id, results, 'error')
 });
 ractive.on('timeout', function(event) {
-    var results = $(event.node).siblings('.result').html()
+    var results = $(event.node).siblings('.result').children('span').html()
     var id = $(event.node).parent().data('id');
     $(event.node).parent().remove();
     handle_event(id, results, 'timeout')
@@ -283,8 +283,6 @@ class ActivityProxy(object):
 
 
 def run_one_decision():
-    print(running)
-    print(results)
     sched = OptionsScheduler(
                 ArgsDependencyScheduler(
                     DecisionScheduler(
@@ -301,8 +299,6 @@ def run_one_decision():
     MyWorkflow.square.scheduler = sched
     wf = MyWorkflow('[[], {}]', sched)
     value = wf()
-    print(sched._decisions._data)
-    print(value)
 
 cls_header = "
 class MyWorkflow(Workflow):
@@ -322,7 +318,6 @@ def run(event):
     txt = JSObject(editor).getValue()
 
     cls_def = cls_header + indent(txt, 2)
-    print(cls_def)
     try:
         exec(cls_def, globals())
         run_one_decision()
