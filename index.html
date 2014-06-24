@@ -137,6 +137,13 @@ function clear_queues() {
     normal_queue.splice(0, normal_queue.length)
     backup_queue.splice(0, backup_queue.length)
 }
+function fire_timer(id, time) {
+    console.log(time)
+    setTimeout(function() {
+        handle_event(id, "fake", 'timer_fired') 
+    }, time*1000)
+
+}
 ractive.on('finish', function(event) {
     var results = $(event.node).siblings('.result').children('span').html()
     var id = $(event.node).parent().data('id');
@@ -172,11 +179,14 @@ timedout = []
 results = {}
 
 def handle_event(id, result, ev_type):
+    id = int(id)
     running.remove(id)
     if ev_type == 'finish':
         results[id] = result
     elif ev_type == 'timeout':
         timedout.append(id)
+    elif ev_type == 'timer_fired':
+        results[id] = None
     else:
         errors[id] = "Activity borked up"
     run_one_decision()
@@ -186,6 +196,7 @@ window.handle_event = handle_event
 
 add_act = JSObject(add_activity)
 clear_q = JSObject(clear_queues)
+timer_fire = JSObject(fire_timer)
 
 def square(x):
     return x**2
@@ -216,6 +227,11 @@ class Client(object):
                 atrs = decision['failWorkflowExecutionDecisionAttributes']
                 clear_q()
                 alert("Workflow finished with result: " + atrs['reason'])
+            elif dt == 'StartTimer':
+                atrs = decision["startTimerDecisionAttributes"]
+                id = int(atrs["timerId"])
+                running.append(id)
+                timer_fire(id, atrs["startToFireTimeout"])
 
 
 import traceback
